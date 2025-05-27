@@ -128,3 +128,9 @@ dmypy.json
 
 # Other
 *.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal # SQLite journal files

@@ -1,22 +1,24 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import uvicorn
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from typing import List # For response models that return a list
+
+# Import components from our other backend files
+from . import crud, models, schemas # Note the "." for relative imports
+from .database import SessionLocal, engine, get_db
+
+# Create all database tables (if they don't exist already)
+# This line should be called when the application starts.
+# For a more robust setup with migrations (e.g., Alembic), this might be handled differently.
+models.Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
     title="WuhudA'emro API",
-    version="0.0.1",
-    description="The foundational API for the Personalized AI Symbiosis Platform."
+    version="0.0.2", # Incremented version
+    description="The foundational API for the Personalized AI Symbiosis Platform, now with persistent storage."
 )
 
-# Pydantic model for request body (for later use)
-class Note(BaseModel):
-    content: str
-    user_id: str # For now, just a string. Will be more complex later.
-
-# In-memory storage for notes (temporary, will be replaced by a database)
-# Using a dictionary where key is user_id and value is a list of notes for that user
-mock_db_notes = {}
+# --- API Endpoints ---
 
 @app.get("/")
 async def read_root():
@@ -30,36 +32,44 @@ async def read_root():
         "documentation_url": "/docs"
     }
 
-@app.post("/notes/", status_code=201)
-async def create_note(note: Note):
+@app.post("/notes/", response_model=schemas.Note, status_code=201)
+async def create_note_endpoint(note: schemas.NoteCreate, db: Session = Depends(get_db)):
     """
     Endpoint to create a new note.
-    For now, it stores the note in an in-memory dictionary.
+    The note is now stored in the SQLite database.
+    - `note: schemas.NoteCreate`: The request body, validated by Pydantic.
+    - `db: Session = Depends(get_db)`: Injects a database session.
+    - `response_model=schemas.Note`: Specifies the shape of the successful response.
     """
-    if note.user_id not in mock_db_notes:
-        mock_db_notes[note.user_id] = []
-    
-    mock_db_notes[note.user_id].append(note.content)
-    
-    return {
-        "message": "Note created successfully",
-        "user_id": note.user_id,
-        "note_content": note.content,
-        "total_notes_for_user": len(mock_db_notes[note.user_id])
-    }
+    return crud.create_user_note(db=db, note=note)
 
-@app.get("/notes/{user_id}")
-async def get_notes_for_user(user_id: str):
+@app.get("/notes/user/{user_id}", response_model=List[schemas.Note])
+async def get_notes_for_user_endpoint(user_id: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Endpoint to retrieve all notes for a specific user.
+    - `user_id`: Path parameter.
+    - `skip`, `limit`: Query parameters for pagination.
+    - `response_model=List[schemas.Note]`: Indicates the response is a list of Note objects.
     """
-    if user_id not in mock_db_notes:
-        return {"message": "No notes found for this user.", "notes": []}
-    
-    return {"user_id": user_id, "notes": mock_db_notes[user_id]}
+    notes = crud.get_notes_by_user(db=db, user_id=user_id, skip=skip, limit=limit)
+    if not notes:
+        # You could return an empty list and 200 OK, or a 404 if preferred.
+        # For now, returning empty list is fine.
+        return []
+    return notes
 
-if __name__ == "__main__":
-    # This block allows running the app directly with `python main.py`
-    # However, for development, `uvicorn main:app --reload` is preferred.
-    print("Starting Uvicorn server on http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+@app.get("/notes/{note_id}", response_model=schemas.Note)
+async def get_single_note_endpoint(note_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint to retrieve a single note by its ID.
+    """
+    db_note = crud.get_note(db=db, note_id=note_id)
+    if db_note is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return db_note
+
+# Note: The if __name__ == "__main__": block for uvicorn.run is removed.
+# It's better practice to run uvicorn directly from the command line as we've been doing:
+# `uvicorn main:app --reload`
+# This ensures that `models.Base.metadata.create_all(bind=engine)` runs correctly in the global scope
+# when the Uvicorn server imports the `app` object.
