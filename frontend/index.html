@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WuhudA'emro - My Notes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>WuhudA'emro Notes</h1>
+    </header>
+
+    <main>
+        <section id="new-note-section">
+            <h2>Add New Note</h2>
+            <form id="new-note-form">
+                <div>
+                    <label for="user-id">User ID:</label>
+                    <input type="text" id="user-id" name="user-id" value="test_user_ui" required>
+                </div>
+                <div>
+                    <label for="note-content">Content:</label>
+                    <textarea id="note-content" name="note-content" rows="4" required></textarea>
+                </div>
+                <button type="submit">Add Note</button>
+            </form>
+            <p id="form-message"></p>
+        </section>
+
+        <section id="notes-display-section">
+            <h2>My Notes</h2>
+            <div class="controls">
+                <label for="fetch-user-id">Fetch notes for User ID:</label>
+                <input type="text" id="fetch-user-id" value="test_user_ui">
+                <button id="fetch-notes-button">Fetch Notes</button>
+            </div>
+            <ul id="notes-list">
+                <!-- Notes will be dynamically inserted here by JavaScript -->
+            </ul>
+            <p id="notes-message"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 WuhudA'emro. All rights reserved (for now!).</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

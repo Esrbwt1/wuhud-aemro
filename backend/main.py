@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List # For response models that return a list
+from fastapi.middleware.cors import CORSMiddleware
 
 # Import components from our other backend files
 from . import crud, models, schemas # Note the "." for relative imports
@@ -16,6 +17,24 @@ app = FastAPI(
     title="WuhudA'emro API",
     version="0.0.2", # Incremented version
     description="The foundational API for the Personalized AI Symbiosis Platform, now with persistent storage."
+)
+
+# CORS MIDDLEWARE CONFIGURATION - ADDED BLOCK
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://localhost:5500", # Common for Live Server VS Code extension
+    "http://127.0.0.1:5500", # Common for Live Server VS Code extension
+    "null" # Allows requests from file:///
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- API Endpoints ---
